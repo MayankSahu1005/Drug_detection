@@ -96,7 +96,7 @@
 
       .Btn-Container {
         display: flex;
-        width: 170px;
+       
         height: fit-content;
         background-color: #1d2129;
         border-radius: 40px;
@@ -106,8 +106,9 @@
         border: none;
         cursor: pointer;
         position: relative;
-        left: 42rem;
-        margin-top: 100px;
+        text-align: center;
+        margin: 100px auto;
+        
       }
 
       .icon-Container {
@@ -167,10 +168,20 @@
       }
 
       #kmeans-graph,
-      #network-graph {
-        display: none;
+      #network-graph
+      {
+        display: block;
         height: 500px;
-        /* margin: 20px 0; */
+        margin: 20px 100px; 
+      }
+      #analysis-container {
+        display: none;
+        padding: 20px;
+        background-color: #f0f4f8;
+        border-radius: 10px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        max-width: 1400px;
+        margin: auto;
       }
 
       footer {
@@ -245,7 +256,7 @@
         </svg>
       </span>
     </button>
-
+    <div id ="analysis-container" class="analysis-container">
     <h2>Clustering of flagged users</h2>
     <div class="graph-container" id="kmeans-graph"></div>
 
@@ -270,16 +281,19 @@
         </tbody>
       </table>
     </div>
-
+    </div>
     <footer class="foot">Admin Dashboard &copy; Kitchen Coders</footer>
 
     <script>
-      const socket = io.connect("https://drug-detection.onrender.com/");
+      const socket = io("/admin");
+      socket.on('connect', () => {
+    console.log('Connected to /admin');
+    
+});
 
       // Start analysis on button click
       document.getElementById("start-analysis").onclick = () => {
-        document.getElementById("kmeans-graph").style.display = "block";
-        document.getElementById("network-graph").style.display = "block";
+        document.getElementById("analysis-container").style.display = "block";
         socket.emit("start_analysis");
       };
 

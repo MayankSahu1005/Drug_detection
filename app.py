@@ -32,6 +32,7 @@ flagged_user_collection = db["flaggedusers"]
 def analyze_and_plot_data():
     # Fetch user data from MongoDB
     user_data = list(user_collection.find({}, {"_id": 0}))
+   
     df_users = pd.DataFrame(user_data)
 
 
@@ -68,6 +69,7 @@ def analyze_and_plot_data():
 
     # Fetch interaction data to create network graph
     interactions = list(interaction_collection.find({}, {"_id": 0}))
+   
     edges = []
 
     for conversation in interactions:
@@ -77,12 +79,14 @@ def analyze_and_plot_data():
                 for j in range(i + 1, len(members)):
                     edges.append((members[i], members[j]))
 
-    # Create NetworkX graph and layout
+        # Create NetworkX graph and layout
     G = nx.Graph()
     G.add_edges_from(edges)
-    pos = nx.spring_layout(G, seed=42)
 
-    # Prepare data for Plotly graphing
+    # Use a force-directed layout with more iterations for smoother layout
+    pos = nx.spring_layout(G, seed=42, k=0.5, iterations=100)
+
+    # Prepare edge coordinates
     edge_x, edge_y = [], []
     for edge in G.edges():
         x0, y0 = pos[edge[0]]
@@ -90,25 +94,63 @@ def analyze_and_plot_data():
         edge_x += [x0, x1, None]
         edge_y += [y0, y1, None]
 
+    # Prepare node coordinates
     node_x, node_y = [], []
     for node in G.nodes():
         x, y = pos[node]
         node_x.append(x)
         node_y.append(y)
 
-    # Create edge and node traces for Plotly
-    edge_trace = go.Scatter(x=edge_x, y=edge_y, line=dict(width=0.5, color='#888'), hoverinfo='none', mode='lines')
+    # Compute node degrees for color/size
     degree_dict = dict(G.degree())
-    node_trace = go.Scatter(
-        x=node_x, y=node_y, mode='markers+text', hoverinfo='text',
-        text=[f"User ID: {node}<br>Connections: {degree_dict[node]}" for node in G.nodes()],
-        marker=dict(showscale=True, colorscale='YlGnBu', size=10, colorbar=dict(thickness=15, title='Node Connections'))
+    node_color = [degree_dict[node] for node in G.nodes()]
+    node_size = [5 + 10 * degree_dict[node] for node in G.nodes()]
+
+    # Edge trace with softer color
+    edge_trace = go.Scatter(
+        x=edge_x, y=edge_y,
+        line=dict(width=5, color='rgba(150, 150, 150, 0.4)'),
+        hoverinfo='none',
+        mode='lines'
     )
 
-    # Create Plotly figure for network graph
-    fig_network = go.Figure(data=[edge_trace, node_trace],
-                    layout=go.Layout(title={"text":'Interactive User Interaction Network', "font": {"size": 16}},
-                                     showlegend=False, hovermode='closest'))
+    # Node trace with modern colorscale
+    node_trace = go.Scatter(
+        x=node_x, y=node_y,
+        mode='markers+text',
+        hoverinfo='text',
+        text=[f"<b>User ID:</b> {node}<br><b>Connections:</b> {degree_dict[node]}" for node in G.nodes()],
+        marker=dict(
+            showscale=True,
+            colorscale='Viridis',
+            reversescale=True,
+            color=node_color,
+            size=node_size,
+            colorbar=dict(
+                thickness=15,
+                title='Connections',
+                xanchor='left',
+                
+            ),
+            line=dict(width=2, color='DarkSlateGrey')
+        )
+    )
+
+    # Create Plotly figure
+    fig_network = go.Figure(
+        data=[edge_trace, node_trace],
+        layout=go.Layout(
+            title=dict(text='Suspicious Users Connections Network', font=dict(size=20)),
+            showlegend=False,
+            hovermode='closest',
+            margin=dict(b=20, l=20, r=20, t=40),
+            paper_bgcolor='rgba(231, 76, 60)',
+            plot_bgcolor='rgba(231, 76, 60)',
+            xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+            yaxis=dict(showgrid=False, zeroline=False, showticklabels=False)
+        )
+    )
+
 
     # Convert figures to JSON for frontend
     kmeans_json = json.dumps(fig_kmeans, cls=plotly.utils.PlotlyJSONEncoder)
