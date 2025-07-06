@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Admin Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -167,7 +168,7 @@
         animation: fadeInUp 1s ease-out forwards;
       }
 
-      #kmeans-graph,
+      #word-bar-chart,
       #network-graph
       {
         display: block;
@@ -257,11 +258,12 @@
       </span>
     </button>
     <div id ="analysis-container" class="analysis-container">
-    <h2>Clustering of flagged users</h2>
-    <div class="graph-container" id="kmeans-graph"></div>
+    
 
     <h2>Flagged User Interaction Network</h2>
     <div class="graph-container" id="network-graph"></div>
+      <h2>Suspicious Words Count</h2>
+    <div class="graph-container" id="word-bar-chart"></div>
 
     <!-- New Flagged Users Section -->
     <h2>Flagged User Data</h2>
@@ -299,8 +301,32 @@
 
       // Listen for graph updates
       socket.on("graph_update", (data) => {
-        Plotly.newPlot("kmeans-graph", JSON.parse(data.kmeans));
+        words_flagged = JSON.parse(data.flagged_word);
+        console.log(words_flagged);
         Plotly.newPlot("network-graph", JSON.parse(data.network));
+
+        // Prepare data for the word bar chart
+        const words = words_flagged.words;
+        const counts = words_flagged.counts;
+        const trace = [{
+          x: words,
+          y: counts,
+          type: "bar",
+          marker: {
+            color: "#629584",
+          },
+        }];
+
+        Plotly.newPlot("word-bar-chart", trace, {
+          title: 'Most Used Suspicious Words',
+          xaxis: {
+            title: 'Words',
+            tickangle: -45,
+          },
+          yaxis: {
+            title: 'Counts',
+          },
+        });
 
         // Populate flagged user table
         const tbody = document.getElementById("flagged-users-body");

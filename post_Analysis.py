@@ -60,12 +60,13 @@ def monitor_changes(collection):
                 resume_token = None
             time.sleep(1)  # Wait for 1 second before retrying
 
-
-if __name__ == "__main__":
+def post_analysis():
+    
     client = pymongo.MongoClient(os.getenv("MONGO_URI"))  # Replace with your connection string
     db = client["test"]
     collection = db["posts"]
     flagged_collection = db["flaggedusers"]
  
-
     monitor_changes(collection)
+
+__all__ = ["post_analysis"]
